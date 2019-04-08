@@ -5,14 +5,9 @@ namespace MageSuite\AssetsPrefetch\Plugin\Framework\View\Page\Config\Renderer;
 class AddPrefetchedAssets
 {
     /**
-     * @var \Magento\Framework\View\Page\Config
+     * @var \MageSuite\AssetsPrefetch\Service\AssetsProvider
      */
-    protected $pageConfig;
-
-    /**
-     * @var \Magento\Framework\View\Asset\MergeService
-     */
-    protected $mergeService;
+    protected $assetsProvider;
 
     /**
      * @var \MageSuite\AssetsPrefetch\Model\Assets\PrefetchedAssetsCache
@@ -20,37 +15,24 @@ class AddPrefetchedAssets
     protected $prefetchedAssetsCache;
 
     public function __construct(
-        \Magento\Framework\View\Page\Config $pageConfig,
-        \Magento\Framework\View\Asset\MergeService $mergeService,
+        \MageSuite\AssetsPrefetch\Service\AssetsProvider $assetsProvider,
         \MageSuite\AssetsPrefetch\Model\Assets\PrefetchedAssetsCache $prefetchedAssetsCache
     )
     {
-        $this->pageConfig = $pageConfig;
-        $this->mergeService = $mergeService;
         $this->prefetchedAssetsCache = $prefetchedAssetsCache;
+        $this->assetsProvider = $assetsProvider;
     }
 
     public function afterRenderHeadContent(\Magento\Framework\View\Page\Config\Renderer $subject, $result)
     {
-        foreach ($this->pageConfig->getAssetCollection()->getGroups() as $group) {
-            $groupAssets = $group->getAll();
+        $assets = $this->assetsProvider->getCurrentPageAssetsUrls();
 
-            if (!$group->getProperty(\Magento\Framework\View\Asset\GroupedCollection::PROPERTY_CAN_MERGE)) {
-                continue;
-            }
+        if(empty($assets)) {
+            return $result;
+        }
 
-            if ($group->getProperty(\Magento\Framework\View\Asset\GroupedCollection::PROPERTY_CONTENT_TYPE) !== 'css') {
-                continue;
-            }
-
-            $mergedAssets = $this->mergeService->getMergedAssets(
-                $groupAssets,
-                $group->getProperty(\Magento\Framework\View\Asset\GroupedCollection::PROPERTY_CONTENT_TYPE)
-            );
-
-            foreach ($mergedAssets as $asset) {
-                $this->prefetchedAssetsCache->addAsset($asset->getUrl());
-            }
+        foreach($assets as $assetUrl) {
+            $this->prefetchedAssetsCache->addAsset($assetUrl);
         }
 
         if($this->prefetchedAssetsCache->hasNewAssets()) {
