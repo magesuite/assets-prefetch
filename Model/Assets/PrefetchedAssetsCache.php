@@ -28,14 +28,28 @@ class PrefetchedAssetsCache
      */
     protected $serializer;
 
+    /**
+     * @var \Magento\Framework\Event\Manager
+     */
+    protected $eventManager;
+
+    /**
+     * @var \Magento\Framework\Indexer\CacheContext
+     */
+    protected $cacheContext;
+
 
     public function __construct(
         \Magento\Framework\App\CacheInterface $cache,
-        \Magento\Framework\Serialize\SerializerInterface $serializer
+        \Magento\Framework\Serialize\SerializerInterface $serializer,
+        \Magento\Framework\Event\Manager $eventManager,
+        \Magento\Framework\Indexer\CacheContext $cacheContext
     )
     {
         $this->cache = $cache;
         $this->serializer = $serializer;
+        $this->eventManager = $eventManager;
+        $this->cacheContext = $cacheContext;
     }
 
     public function getExistingAssets() {
@@ -64,7 +78,11 @@ class PrefetchedAssetsCache
             self::CACHE_IDENTIFIER
         );
 
-        $this->cache->clean([self::CACHE_TAG]);
+        $tags = [self::CACHE_TAG];
+        
+        $this->cache->clean($tags);
+        $this->cacheContext->registerTags($tags);
+        $this->eventManager->dispatch('clean_cache_by_tags', ['object' => $this->cacheContext]);
     }
 
     public function hasNewAssets() {
