@@ -79,7 +79,7 @@ class PrefetchedAssetsCache
         );
 
         $tags = [self::CACHE_TAG];
-        
+
         $this->cache->clean($tags);
         $this->cacheContext->registerTags($tags);
         $this->eventManager->dispatch('clean_cache_by_tags', ['object' => $this->cacheContext]);
